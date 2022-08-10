@@ -10,6 +10,6 @@ public class Lead {
 	private Integer id;
 	private String email;
 	private String name;
-	private String personal_phone;
-	private String job_title;
+	private String personalPhone;
+	private String jobTitle;
 }
