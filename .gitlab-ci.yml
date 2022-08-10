@@ -1,0 +1,21 @@
+include:
+  - project: devops/integracao-continua
+    file: templates/pipelines/docker.yml
+    ref: "main"
+
+variables:
+  NOTIFY_ROCKETCHAT_CHANNEL: "#devops"
+
+
+
+build:
+  image: registry-proxy.digicade.com.br/maven:3-jdk-11
+  before_script:
+    - wget -O settings.xml https://git.digicade.com.br/snippets/4/raw
+  script:
+    - mvn clean package -DskipTests=true -s settings.xml
+  artifacts:
+    expire_in: 10 minutes
+    paths:
+      - target/
+

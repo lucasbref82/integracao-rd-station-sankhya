@@ -35,31 +35,31 @@ public class LeadService {
 			+ "\"entityName\": \"ParceiroProspect\","
 			+ "\"standAlone\": false,"
 			+ "\"fields\":["
-			+ "	\"NOMEPAP\","
-			+ "	\"RAZAOSOCIAL\","
-			+ "	\"CODVEND\","
-			+ "	\"TIPPESSOA\","
-			+ "	\"EMAIL\","
-			+ "	\"CODTIPPARC\","
-			+ "	\"AD_TCCNC\","
-			+ "	\"TELEFONE\","
-			+ "	\"AD_CADASTRADORDSTATION\","
-			+ "	\"AD_IDRDSTATION\""
-			+ "		],"
+			+ "\"NOMEPAP\","
+			+ "\"RAZAOSOCIAL\","
+			+ "\"CODVEND\","
+			+ "\"TIPPESSOA\","
+			+ "\"EMAIL\","
+			+ "\"CODTIPPARC\","
+			+ "\"AD_TCCNC\","
+			+ "\"TELEFONE\","
+			+ "\"AD_CADASTRADORDSTATION\","
+			+ "\"AD_IDRDSTATION\""
+			+ "	],"
 			+ "\"records\":["
-			+ "	{"
-			+ "		\"values\": {"
-			+ "			\"0\": \"%s\","
-			+ "			\"1\": \"%s\","
-			+ "			\"2\": \"0\","
-			+ "			\"3\": \"J\","
-			+ "			\"4\": \"%s\","
-			+ "			\"5\": \"0\","
-			+ "			\"6\": \"9\","
-			+ "			\"7\": \"%s\","
-			+ "			\"8\": \"1\","
-			+ "			\"9\": \"%d\""
-			+ "				}"
+			+ "{"
+			+ "\"values\": {"
+			+ "\"0\": \"%s\","
+			+ "\"1\": \"%s\","
+			+ "\"2\": \"0\","
+			+ "\"3\": \"J\","
+			+ "\"4\": \"%s\","
+			+ "\"5\": \"0\","
+			+ "\"6\": \"9\","
+			+ "\"7\": \"%s\","
+			+ "\"8\": \"1\","
+			+ "\"9\": \"%d\""
+			+ "	}"
 			+ "	}"
 			+ "]";
 	
@@ -67,31 +67,35 @@ public class LeadService {
 			+ "\"entityName\": \"ContatoProspect\","
 			+ "\"standAlone\": false,"
 			+ "\"fields\": ["
-			+ "	\"NOMECONTATO\","
-			+ "	\"EMAIL\","
-			+ "	\"CELULAR\","
-			+ "	\"CARGO\""
-			+ "	],"
-			+ "	\"records\": ["
-			+ "		{"
-			+ "			\"foreignKey\": {"
-			+ "			\"CODPAP\": \"ULTCODPAP\""
-			+ "			 },"
-			+ "			 \"values\": {"
-			+ "				\"0\": \"%s\","
-			+ "				\"1\": \"%s\","
-			+ "				\"2\": \"%s\","
-			+ "			 	\"3\": \"%s\""
-			+ "			 }"
-			+ "		}"
-			+ "	],"
+			+ "\"NOMECONTATO\","
+			+ "\"EMAIL\","
+			+ "\"CELULAR\","
+			+ "\"CARGO\""
+			+ "],"
+			+ "\"records\": ["
+			+ "{"
+			+ "\"foreignKey\": {"
+			+ "\"CODPAP\": \"ULTCODPAP\""
+			+ "},"
+			+ "\"values\": {"
+			+ "\"0\": \"%s\","
+			+ "\"1\": \"%s\","
+			+ "\"2\": \"%s\","
+			+ "\"3\": \"%s\""
+			+ "}"
+			+ "}"
+			+ "],"
 			+ "\"ignoreListenerMethods\": \"\"";
 	
-	private final String bodyDbe = "\"sql\":\"SELECT MAX(CODPAP) FROM TCSPAP\"";
+	private static final String bodyDbe = "\"sql\":\"SELECT MAX(CODPAP) FROM TCSPAP\"";
+	
+	private static final String STATUS = "status";
+	
+	private static final String STATUSMESSAGE = "statusMessage";
 	
 	public void criar (LeadDTO dto) throws Exception {
-		for (Lead lead : dto.getLeads()) {
-			callCreateProspect(lead);
+		for (Lead leads : dto.getLeads()) {
+			callCreateProspect(leads);
 		}
 	}
 	
@@ -100,34 +104,30 @@ public class LeadService {
 	}
 	
 	private void createProspect(String url, String usuario, String senha, Lead lead) throws Exception {
-		String newBody =  String.format(body, lead.getName(), lead.getName(), lead.getEmail(), lead.getPersonal_phone(), lead.getId());
-		System.out.println(newBody);
+		String newBody =  String.format(body, lead.getName(), lead.getName(), lead.getEmail(), lead.getPersonalPhone(), lead.getId());
 		serviceInvoker = new SWServiceInvoker(url, usuario, senha);
 		JSONObject jsonObject = new JSONObject(serviceInvoker.callAsJson("DatasetSP.save", "mge", newBody).toString());		
-		if(jsonObject.getInt("status") == 0) {
-			  throw new IllegalStateException(jsonObject.getString("statusMessage"));
+		if(jsonObject.getInt(STATUS) != 1) {
+			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
 		}
 		criaContato(retornaIdProspect(), lead);
 	}
 	
 	private Integer retornaIdProspect() throws JSONException, Exception {
 		JSONObject jsonObject = new JSONObject(serviceInvoker.callAsJson("DbExplorerSP.executeQuery", "mge", bodyDbe).toString());		
-		if(jsonObject.getInt("status") == 0) {
-			  throw new IllegalStateException(jsonObject.getString("statusMessage"));
+		if(jsonObject.getInt(STATUS) != 1) {
+			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
 		}
 		JSONObject responseBody  = jsonObject.getJSONObject("responseBody");
-		Integer idProspect = Integer.parseInt(new String(responseBody.getJSONArray("rows")
-				.toString()
-				.replace("[", "")
-				.replace("]", "")));
-		return idProspect;
+		String resposta = responseBody.getJSONArray("rows").toString().replace("[", "").replace("]", "");
+		return Integer.parseInt(resposta);
 	}
 	
 	private void criaContato(Integer idProspect, Lead lead) throws JSONException, Exception {
-		String newBodyContato = String.format(bodyContato, lead.getName(), lead.getEmail(), lead.getPersonal_phone(), lead.getJob_title()).replace("ULTCODPAP", String.valueOf(idProspect));
+		String newBodyContato = String.format(bodyContato, lead.getName(), lead.getEmail(), lead.getPersonalPhone(), lead.getJobTitle()).replace("ULTCODPAP", String.valueOf(idProspect));
 		JSONObject jsonObject = new JSONObject(serviceInvoker.callAsJson("DatasetSP.save", "mge", newBodyContato).toString());		
-		if(jsonObject.getInt("status") == 0) {
-			  throw new IllegalStateException(jsonObject.getString("statusMessage"));
+		if(jsonObject.getInt(STATUS) != 1) {
+			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
 		}
 	}
 }
