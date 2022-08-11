@@ -29,7 +29,8 @@ public class LeadController {
 			try {
 				service.criar(leads);
 			}catch (Exception e) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
+				e.printStackTrace();
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 			}
 		}else {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Não autorizado.");
