@@ -127,13 +127,8 @@ public class SankhyaService {
 	}
 
 	private JsonObject converterInputStreamEmJsonObject(InputStream is) throws IOException {
-		JsonObject jsonObject = null;
-		try (Reader reader = new InputStreamReader(is, Charset.forName("UTF-8"));) {
-			jsonObject = (JsonObject) JsonParser.parseReader(reader);
-		} catch (Exception e) {
-			if (!(e instanceof java.io.FileNotFoundException))
-				e.printStackTrace();
-		}
+		Reader reader = new InputStreamReader(is, Charset.forName("UTF-8"));
+		JsonObject jsonObject = (JsonObject) JsonParser.parseReader(reader);
 		return jsonObject;
 	}
 
