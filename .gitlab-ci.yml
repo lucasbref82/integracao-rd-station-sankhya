@@ -5,7 +5,7 @@ include:
 
 variables:
   NOTIFY_ROCKETCHAT_CHANNEL: "#devops"
-  ENVIRONMENT: prd
+  ENVIRONMENT: dev|prd
 
 
 
