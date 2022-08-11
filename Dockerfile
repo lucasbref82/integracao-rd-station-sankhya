@@ -1,4 +1,8 @@
 FROM registry.digicade.com.br/base/jre:11.15.v1
+USER root
+
+RUN yum install openssl -y
+
 USER digicade
 
 WORKDIR /home/digicade
