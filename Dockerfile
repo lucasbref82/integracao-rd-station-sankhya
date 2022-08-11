@@ -4,6 +4,7 @@ USER digicade
 WORKDIR /home/digicade
 
 COPY target/*.jar integracao-rd-station.jar
+COPY install_cert.sh $PRERUN_DIR/
 
 CMD [ "-jar","integracao-rd-station.jar"  ]
 
