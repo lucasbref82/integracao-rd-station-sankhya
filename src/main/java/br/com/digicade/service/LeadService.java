@@ -1,21 +1,13 @@
 package br.com.digicade.service;
 
-import java.io.IOException;
-import java.util.HashMap;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.squareup.okhttp.Response;
-
 import br.com.digicade.dto.LeadDTO;
 import br.com.digicade.model.Lead;
-import br.com.sankhya.service.*;
+import br.com.sankhya.service.SWServiceInvoker;
 
 @Service
 public class LeadService {
@@ -113,7 +105,7 @@ public class LeadService {
 		criaContato(retornaIdProspect(), lead);
 	}
 	
-	private Integer retornaIdProspect() throws JSONException, Exception {
+	private Integer retornaIdProspect() throws Exception {
 		JSONObject jsonObject = new JSONObject(serviceInvoker.callAsJson("DbExplorerSP.executeQuery", "mge", bodyDbe).toString());		
 		if(jsonObject.getInt(STATUS) != 1) {
 			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
