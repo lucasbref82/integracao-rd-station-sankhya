@@ -10,6 +10,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -73,7 +74,7 @@ public class SankhyaService {
 		OutputStream out = null;
 		InputStream inp = null;
 		out = conn.getOutputStream();
-		OutputStreamWriter wout = new OutputStreamWriter(out, "ISO-8859-1");
+		OutputStreamWriter wout = new OutputStreamWriter(out, StandardCharsets.UTF_8);
 		String requestBody = null;
 		requestBody = construirCorpoRequisicao(body, serviceName);
 		wout.write(requestBody);
@@ -81,7 +82,7 @@ public class SankhyaService {
 		inp = conn.getInputStream();
 		JsonObject jsonObject = converterInputStreamEmJsonObject(inp);
 		if (!jsonObject.has("responseBody"))
-			throw new SankhyaException("Json de resposta npossui dados de resposta.");
+			throw new SankhyaException(jsonObject.get("statusMessage").getAsString());
 		return jsonObject;
 	}
 

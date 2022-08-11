@@ -36,8 +36,8 @@ public class LeadService {
 			+ "\"EMAIL\","
 			+ "\"CODTIPPARC\","
 			+ "\"AD_TCCNC\","
-			+ "\"TELEFONE\","
 			+ "\"AD_CADASTRADORDSTATION\","
+			+ "\"OBSERVACAO\","
 			+ "\"AD_IDRDSTATION\""
 			+ "	],"
 			+ "\"records\":["
@@ -50,7 +50,7 @@ public class LeadService {
 			+ "\"4\": \"%s\","
 			+ "\"5\": \"0\","
 			+ "\"6\": \"9\","
-			+ "\"7\": \"%s\","
+			+ "\"7\": \"1\","
 			+ "\"8\": \"1\","
 			+ "\"9\": \"%d\""
 			+ "	}"
@@ -83,10 +83,6 @@ public class LeadService {
 	
 	private static final String bodyDbe = "\"sql\":\"SELECT MAX(CODPAP) FROM TCSPAP\"";
 	
-	private static final String STATUS = "status";
-	
-	private static final String STATUSMESSAGE = "statusMessage";
-	
 	public void criar (LeadDTO dto) throws JSONException, IOException, SankhyaException {
 		for (Lead leads : dto.getLeads()) {
 			callCreateProspect(leads);
@@ -98,30 +94,23 @@ public class LeadService {
 	}
 	
 	private void createProspect(String url, String usuario, String senha, Lead lead) throws JSONException, IOException, SankhyaException {
-		String newBody =  String.format(body, lead.getName(), lead.getName(), lead.getEmail(), lead.getPersonalPhone(), lead.getId());
+		String newBody =  String.format(body, lead.getName(), lead.getName(), lead.getEmail(),lead.getId());
 		serviceInvoker = new SankhyaService(url, usuario, senha);
-		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DatasetSP.save", "mge", newBody).toString());		
-		if(jsonObject.getInt(STATUS) != 1) {
-			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
-		}
+		serviceInvoker.chamarServico("DatasetSP.save", "mge", newBody);		
 		criaContato(retornaIdProspect(), lead);
 	}
 	
 	private Integer retornaIdProspect() throws JSONException, IOException, SankhyaException {
 		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DbExplorerSP.executeQuery", "mge", bodyDbe).toString());		
-		if(jsonObject.getInt(STATUS) != 1) {
-			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
-		}
 		JSONObject responseBody  = jsonObject.getJSONObject("responseBody");
 		String resposta = responseBody.getJSONArray("rows").toString().replace("[", "").replace("]", "");
 		return Integer.parseInt(resposta);
 	}
 	
 	private void criaContato(Integer idProspect, Lead lead) throws JSONException, IOException, SankhyaException {
-		String newBodyContato = String.format(bodyContato, lead.getName(), lead.getEmail(), lead.getPersonalPhone(), lead.getJobTitle()).replace("ULTCODPAP", String.valueOf(idProspect));
-		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DatasetSP.save", "mge", newBodyContato).toString());		
-		if(jsonObject.getInt(STATUS) != 1) {
-			  throw new IllegalStateException(jsonObject.getString(STATUSMESSAGE));
-		}
+		String newBodyContato = String.format(bodyContato, lead.getName(), lead.getEmail(), 
+				lead.getPersonalPhone() != null ? lead.getPersonalPhone() : "", 
+				lead.getJobTitle() != null ? lead.getJobTitle() : "").replace("ULTCODPAP", String.valueOf(idProspect));
+		serviceInvoker.chamarServico("DatasetSP.save", "mge", newBodyContato);		
 	}
 }
