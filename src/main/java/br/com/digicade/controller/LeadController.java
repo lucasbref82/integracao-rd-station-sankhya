@@ -1,5 +1,8 @@
-package br.com.digicade.controller;
+ package br.com.digicade.controller;
 
+import java.io.IOException;
+
+import org.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -11,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import br.com.digicade.dto.LeadDTO;
+import br.com.digicade.exception.SankhyaException;
 import br.com.digicade.service.LeadService;
 
 @RestController
@@ -24,11 +28,14 @@ public class LeadController {
 	
 	@PostMapping(path = "/v1/criar")
 	@ResponseStatus(code = HttpStatus.CREATED)
-	public void criar(@RequestBody LeadDTO leads, @RequestParam String token) {
+	public void criar(@RequestBody LeadDTO leads, @RequestParam String token) throws Exception {
 		if(token.equals(this.token)) {
 			try {
 				service.criar(leads);
-			}catch (Exception e) {
+			}catch (SankhyaException e) {
+				e.printStackTrace();
+				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno no Sankhya: " + e.getMessage(), e);
+			}catch (JSONException | IOException e) {
 				e.printStackTrace();
 				throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage(), e);
 			}
