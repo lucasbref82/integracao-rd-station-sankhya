@@ -25,19 +25,18 @@ public class LeadController {
 	
 	@PostMapping(path = "/v1/criar")
 	@ResponseStatus(code = HttpStatus.CREATED)
-	public ResponseEntity<?> criar(@RequestBody LeadDTO leads, @RequestParam String token) {
+	public ResponseEntity<HashMap<String, Object>> criar(@RequestBody LeadDTO leads, @RequestParam String token) {
+		HashMap<String, Object> map = new HashMap<>();
 		if(token.equals(this.token)) {
 			try {
 				service.criar(leads);
 				return ResponseEntity.status(HttpStatus.CREATED).body(null);
 			}catch (Exception e) {
-				HashMap<String, Object> map = new HashMap<>();
 				map.put("Error", true);
 				map.put("Message", e.getMessage());
 				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(map);
 			}
 		}else {
-			HashMap<String, Object> map = new HashMap<>();
 			map.put("Error", true);
 			map.put("Message", "Não Autorizado.");
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(map);
