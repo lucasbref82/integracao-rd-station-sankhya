@@ -13,8 +13,6 @@ import br.com.digicade.model.Lead;
 
 @Service
 public class LeadService {
-
-	private SankhyaService serviceInvoker;
 	
 	@Value("${sankhya-url}")
 	private String url;
@@ -24,6 +22,10 @@ public class LeadService {
 	
 	@Value("${sankhya-password}")
 	private String senha;
+
+	
+	private SankhyaService serviceInvoker;
+	
 	
 	private String body = "\"dataSetID\": \"00K\","
 			+ "\"entityName\": \"ParceiroProspect\","
@@ -83,6 +85,8 @@ public class LeadService {
 	
 	private static final String bodyDbe = "\"sql\":\"SELECT MAX(CODPAP) FROM TCSPAP\"";
 	
+	private String bodyVerificaLeadExistente = "\"sql\":\"SELECT AD_IDRDSTATION FROM TCSPAP WHERE AD_IDRDSTATION = :IDLEAD\"";
+	
 	public void criar (LeadDTO dto) throws JSONException, IOException, SankhyaException {
 		for (Lead leads : dto.getLeads()) {
 			callCreateProspect(leads);
@@ -90,12 +94,15 @@ public class LeadService {
 	}
 	
 	public void callCreateProspect(Lead lead) throws JSONException, IOException, SankhyaException {
-		createProspect(this.url, this.usuario, this.senha, lead);
+		serviceInvoker = new SankhyaService(url, usuario, senha);
+		if (!verificaLeadExiste(lead.getId())) {
+			return;
+		}
+		createProspect(lead);
 	}
 	
-	private void createProspect(String url, String usuario, String senha, Lead lead) throws JSONException, IOException, SankhyaException {
+	private void createProspect(Lead lead) throws JSONException, IOException, SankhyaException {
 		String newBody =  String.format(body, lead.getName(), lead.getName(), lead.getEmail(),lead.getId());
-		serviceInvoker = new SankhyaService(url, usuario, senha);
 		serviceInvoker.chamarServico("DatasetSP.save", "mge", newBody);		
 		criaContato(retornaIdProspect(), lead);
 	}
@@ -109,8 +116,22 @@ public class LeadService {
 	
 	private void criaContato(Integer idProspect, Lead lead) throws JSONException, IOException, SankhyaException {
 		String newBodyContato = String.format(bodyContato, lead.getName(), lead.getEmail(), 
-				lead.getPersonalPhone() != null ? lead.getPersonalPhone() : "", 
+				lead.getPersonalPhone() != null ? trataCampoTelefone(lead.getPersonalPhone()) : "", 
 				lead.getJobTitle() != null ? lead.getJobTitle() : "").replace("ULTCODPAP", String.valueOf(idProspect));
 		serviceInvoker.chamarServico("DatasetSP.save", "mge", newBodyContato);		
+	}
+	
+	public String trataCampoTelefone(String telefone) {
+		return telefone.replaceAll("[^0-9]+", "");
+	}
+	
+	public boolean verificaLeadExiste(Long idLead) throws JSONException, IOException, SankhyaException {
+		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DbExplorerSP.executeQuery", "mge", bodyVerificaLeadExistente.replace(":IDLEAD", idLead.toString())).toString());		
+		JSONObject responseBody  = jsonObject.getJSONObject("responseBody");
+		String resposta = responseBody.getJSONArray("rows").toString().replace("[", "").replace("]", "");
+		if(resposta != null) {
+			return false;
+		}
+		return true;
 	}
 }
