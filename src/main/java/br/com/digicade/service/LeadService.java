@@ -87,7 +87,7 @@ public class LeadService {
 	
 	private String bodyVerificaLeadExistente = "\"sql\":\"SELECT AD_IDRDSTATION FROM TCSPAP WHERE AD_IDRDSTATION = :IDLEAD\"";
 	
-	public void criar (LeadDTO dto) throws JSONException, IOException, SankhyaException {
+	public void criar (LeadDTO dto) throws JSONException, IOException, SankhyaException{
 		for (Lead leads : dto.getLeads()) {
 			callCreateProspect(leads);
 		}
@@ -99,6 +99,16 @@ public class LeadService {
 			return;
 		}
 		createProspect(lead);
+	}
+	
+	public boolean verificaLeadExiste(Long idLead) throws JSONException, IOException, SankhyaException {
+		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DbExplorerSP.executeQuery", "mge", bodyVerificaLeadExistente.replace(":IDLEAD", idLead.toString())).toString());		
+		JSONObject responseBody  = jsonObject.getJSONObject("responseBody");
+		String resposta = responseBody.getJSONArray("rows").toString().replace("[", "").replace("]", "");
+		if(resposta != null && !resposta.isEmpty()) {
+			return false;
+		}
+		return true;
 	}
 	
 	private void createProspect(Lead lead) throws JSONException, IOException, SankhyaException {
@@ -125,13 +135,4 @@ public class LeadService {
 		return telefone.replaceAll("[^0-9]+", "");
 	}
 	
-	public boolean verificaLeadExiste(Long idLead) throws JSONException, IOException, SankhyaException {
-		JSONObject jsonObject = new JSONObject(serviceInvoker.chamarServico("DbExplorerSP.executeQuery", "mge", bodyVerificaLeadExistente.replace(":IDLEAD", idLead.toString())).toString());		
-		JSONObject responseBody  = jsonObject.getJSONObject("responseBody");
-		String resposta = responseBody.getJSONArray("rows").toString().replace("[", "").replace("]", "");
-		if(resposta != null) {
-			return false;
-		}
-		return true;
-	}
 }
