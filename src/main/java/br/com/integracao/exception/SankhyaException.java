@@ -1,4 +1,4 @@
-package br.com.digicade.exception;
+package br.com.integracao.exception;
 
 public class SankhyaException extends Exception{
 	

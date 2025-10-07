@@ -1,8 +1,8 @@
-package br.com.digicade.dto;
+package br.com.integracao.dto;
 
 import java.util.List;
 
-import br.com.digicade.model.Lead;
+import br.com.integracao.model.Lead;
 import lombok.Getter;
 import lombok.Setter;
 
