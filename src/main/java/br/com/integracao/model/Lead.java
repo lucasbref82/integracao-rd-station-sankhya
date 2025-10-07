@@ -1,4 +1,4 @@
-package br.com.digicade.model;
+package br.com.integracao.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
