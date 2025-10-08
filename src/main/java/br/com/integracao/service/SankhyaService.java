@@ -1,25 +1,20 @@
 package br.com.integracao.service;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
+import br.com.integracao.exception.SankhyaException;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-import br.com.integracao.exception.SankhyaException;
-
+@RequiredArgsConstructor
 public class SankhyaService {
 
     private static final Logger log = LoggerFactory.getLogger(SankhyaService.class);
@@ -33,12 +28,6 @@ public class SankhyaService {
 
     private static final String RESPONSE_BODY = "responseBody";
     private static final String JSESSION_ID = "jsessionid";
-
-    public SankhyaService(String url, String usuario, String senha) {
-        this.url = url;
-        this.usuario = usuario;
-        this.senha = senha;
-    }
 
     /**
      * Chama um serviço no Sankhya (login, chamada e logout automáticos).
