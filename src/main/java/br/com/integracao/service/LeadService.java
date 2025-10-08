@@ -19,16 +19,12 @@ public class LeadService {
 
     private static final Logger log = LoggerFactory.getLogger(LeadService.class);
 
-    private final String url;
-    private final String usuario;
-    private final String senha;
+    private final SankhyaService sankhyaService;
 
     public LeadService(@Value("${sankhya-url}") String url,
                        @Value("${sankhya-user}") String usuario,
                        @Value("${sankhya-password}") String senha) {
-        this.url = url;
-        this.usuario = usuario;
-        this.senha = senha;
+        this.sankhyaService = new SankhyaService(url, usuario, senha);
     }
 
     public void criar(LeadDTO dto) throws JSONException, IOException, SankhyaException {
@@ -37,12 +33,9 @@ public class LeadService {
             return;
         }
 
-        // Cria um invoker por execução (evita estado compartilhado entre threads)
-        SankhyaService invoker = new SankhyaService(url, usuario, senha);
-
         for (Lead lead : dto.getLeads()) {
             try {
-                callCreateProspect(invoker, lead);
+                callCreateProspect(sankhyaService, lead);
             } catch (JSONException | IOException | SankhyaException e) {
                 log.error("Falha ao processar lead id={} nome={}: {}", lead.getId(), lead.getName(), e.getMessage(), e);
                 // relança para ser tratado em camadas superiores (Controller/Advice)
@@ -51,32 +44,29 @@ public class LeadService {
         }
     }
 
-    private void callCreateProspect(SankhyaService invoker, Lead lead) throws JSONException, IOException, SankhyaException {
+    private void callCreateProspect(SankhyaService sankhyaService, Lead lead) throws JSONException, IOException, SankhyaException {
         if (lead == null) {
             return;
         }
-
-        // Se o lead já existir no Sankhya, não prosseguir
-        if (leadExists(invoker, lead.getId())) {
+        if (leadExists(sankhyaService, lead.getId())) {
             log.info("Lead já existe no Sankhya (id={}), pulando.", lead.getId());
             return;
         }
-
-        // Cria prospect e contato
-        createProspect(invoker, lead);
+        
+        createProspect(sankhyaService, lead);
     }
 
     /**
      * Verifica se o lead já existe no Sankhya.
      * Retorna true se EXISTE, false caso contrário.
      */
-    private boolean leadExists(SankhyaService invoker, Long idLead) throws JSONException, IOException, SankhyaException {
+    private boolean leadExists(SankhyaService sankhyaService, Long idLead) throws JSONException, IOException, SankhyaException {
         if (idLead == null) {
             return false;
         }
 
         String sql = String.format("SELECT AD_IDRDSTATION FROM TCSPAP WHERE AD_IDRDSTATION = %d", idLead);
-        JSONObject jsonObject = new JSONObject(invoker.chamarServico("DbExplorerSP.executeQuery", "mge", buildSqlPayload(sql)).toString());
+        JSONObject jsonObject = new JSONObject(sankhyaService.chamarServico("DbExplorerSP.executeQuery", "mge", buildSqlPayload(sql)).toString());
         JSONObject responseBody = jsonObject.optJSONObject("responseBody");
         if (responseBody == null) {
             return false;
@@ -86,20 +76,20 @@ public class LeadService {
         return rows != null && !rows.isEmpty();
     }
 
-    private void createProspect(SankhyaService invoker, Lead lead) throws JSONException, IOException, SankhyaException {
+    private void createProspect(SankhyaService sankhyaService, Lead lead) throws JSONException, IOException, SankhyaException {
         String payload = buildProspectPayload(lead).toString();
-        invoker.chamarServico("DatasetSP.save", "mge", payload);
+        sankhyaService.chamarServico("DatasetSP.save", "mge", payload);
 
-        Integer idProspect = retornaIdProspect(invoker);
+        Integer idProspect = retornaIdProspect(sankhyaService);
         if (idProspect != null) {
-            criaContato(invoker, idProspect, lead);
+            criaContato(sankhyaService, idProspect, lead);
         } else {
             throw new SankhyaException("Não foi possível obter ID do prospect após criação.");
         }
     }
 
-    private Integer retornaIdProspect(SankhyaService invoker) throws JSONException, IOException, SankhyaException {
-        JSONObject jsonObject = new JSONObject(invoker.chamarServico("DbExplorerSP.executeQuery", "mge", buildSqlPayload("SELECT MAX(CODPAP) FROM TCSPAP")).toString());
+    private Integer retornaIdProspect(SankhyaService sankhyaService) throws JSONException, IOException, SankhyaException {
+        JSONObject jsonObject = new JSONObject(sankhyaService.chamarServico("DbExplorerSP.executeQuery", "mge", buildSqlPayload("SELECT MAX(CODPAP) FROM TCSPAP")).toString());
         JSONObject responseBody = jsonObject.optJSONObject("responseBody");
         if (responseBody == null) {
             throw new SankhyaException("Resposta inválida do Sankhya ao recuperar ID do prospect.");
@@ -123,9 +113,9 @@ public class LeadService {
         }
     }
 
-    private void criaContato(SankhyaService invoker, Integer idProspect, Lead lead) throws JSONException, IOException, SankhyaException {
+    private void criaContato(SankhyaService sankhyaService, Integer idProspect, Lead lead) throws JSONException, IOException, SankhyaException {
         JSONObject payload = buildContatoPayload(idProspect, lead);
-        invoker.chamarServico("DatasetSP.save", "mge", payload.toString());
+        sankhyaService.chamarServico("DatasetSP.save", "mge", payload.toString());
     }
 
     private JSONObject buildProspectPayload(Lead lead) {
@@ -147,27 +137,32 @@ public class LeadService {
         fields.put("AD_IDRDSTATION");
         root.put("fields", fields);
 
-        JSONObject values = new JSONObject();
-        values.put("0", nonNullString(lead.getName()));
-        values.put("1", nonNullString(lead.getName()));
-        values.put("2", "0");
-        values.put("3", "J");
-        values.put("4", nonNullString(lead.getEmail()));
-        values.put("5", "0");
-        values.put("6", "9");
-        values.put("7", "1");
-        values.put("8", "1");
-        values.put("9", lead.getId() != null ? lead.getId().intValue() : 0);
-
-        JSONObject record = new JSONObject();
-        record.put("values", values);
-
-        JSONArray records = new JSONArray();
-        records.put(record);
+        JSONArray records = buildJson(lead);
 
         root.put("records", records);
 
         return root;
+    }
+
+    private JSONArray buildJson(Lead lead) {
+        JSONObject valores = new JSONObject();
+        valores.put("0", nonNullString(lead.getName()));
+        valores.put("1", nonNullString(lead.getName()));
+        valores.put("2", "0");
+        valores.put("3", "J");
+        valores.put("4", nonNullString(lead.getEmail()));
+        valores.put("5", "0");
+        valores.put("6", "9");
+        valores.put("7", "1");
+        valores.put("8", "1");
+        valores.put("9", lead.getId() != null ? lead.getId().intValue() : 0);
+
+        JSONObject registo = new JSONObject();
+        registo.put("values", valores);
+
+        JSONArray records = new JSONArray();
+        records.put(registo);
+        return records;
     }
 
     private JSONObject buildContatoPayload(Integer idProspect, Lead lead) {
@@ -192,17 +187,16 @@ public class LeadService {
         values.put("2", nonNullString(lead.getPersonalPhone() != null ? trataCampoTelefone(lead.getPersonalPhone()) : ""));
         values.put("3", nonNullString(lead.getJobTitle() != null ? lead.getJobTitle() : ""));
 
-        JSONObject record = new JSONObject();
-        record.put("foreignKey", foreignKey);
-        record.put("values", values);
+        JSONObject registro = new JSONObject();
+        registro.put("foreignKey", foreignKey);
+        registro.put("values", values);
 
-        JSONArray records = new JSONArray();
-        records.put(record);
+        JSONArray registros = new JSONArray();
+        registros.put(registro);
 
-        root.put("records", records);
+        root.put("records", registros);
         root.put("ignoreListenerMethods", "");
-
-        // substitui marcador pelo id do prospect
+        
         String asString = root.toString().replace("ULTCODPAP", String.valueOf(idProspect));
         return new JSONObject(asString);
     }
